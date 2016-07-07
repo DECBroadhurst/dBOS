@@ -1,0 +1,75 @@
+/**
+ * @file TestSys.hpp
+ * @author David Broadhurst
+ * @date 28/06/2015
+ *
+ * \brief Definition of unit test system for dBOS.
+ *
+ */
+
+// -------------------------------------------------------------------------------------------------
+#ifndef TESTSYS_H_
+#define TESTSYS_H_
+
+// -------------------------------------------------------------------------------------------------
+// INCLUDE FILES
+#include "dBOS_DataTypes.hpp"
+
+namespace dBOS {
+// -------------------------------------------------------------------------------------------------
+// EXTERNS (if a matching code file exists)
+
+// -------------------------------------------------------------------------------------------------
+// DEFINES
+#define DBOS_TEST_START() DBOS_Test_Start(__func__);
+
+#define DBOS_TEST_RESULT(A, E) DBOS_Test_Test_Result((A), (E), __LINE__);
+
+#define DBOS_TEST_PRIORITY(A, E) DBOS_Test_Test_Priority((A), (E), __LINE__);
+
+#define DBOS_TEST_SIGNALDATA(A, E) DBOS_Test_Test_SignalData((A), (E), __LINE__);
+
+#define DBOS_TEST_INT32U(A, E) DBOS_Test_Test_INT32U((A), (E), __LINE__);
+
+#define DBOS_TEST_INT32S(A, E) DBOS_Test_Test_INT32S((A), (E), __LINE__);
+
+#define DBOS_TEST_PNT(A, E) DBOS_Test_Test_Pnt((void const *)(A), (void const *)(E), __LINE__);
+
+// -------------------------------------------------------------------------------------------------
+// FORWARD DECLERATIONS
+
+// -------------------------------------------------------------------------------------------------
+// DATA TYPES
+typedef void (*fptrTest)(void);
+
+// -------------------------------------------------------------------------------------------------
+// CONSTANTS
+
+// -------------------------------------------------------------------------------------------------
+// GLOBAL VARIABLES
+
+// -------------------------------------------------------------------------------------------------
+// MACRO’S
+
+// -------------------------------------------------------------------------------------------------
+// FUNCTION PROTOTYPES
+void DBOS_Test_Test_Result(DBOS_RESULT_t const A, DBOS_RESULT_t const E, INT32U const Line);
+void DBOS_Test_Test_Priority(DBOS_TASK_PRIORITY_t const A, DBOS_TASK_PRIORITY_t const E, INT32U const Line);
+void DBOS_Test_Test_SignalData(SIGNALLED_DATA_t const A, SIGNALLED_DATA_t const E, INT32U const Line);
+void DBOS_Test_Test_INT32U(INT32U const A, INT32U const E, INT32U const Line);
+void DBOS_Test_Test_INT32S(INT32S const A, INT32S const E, INT32S const Line);
+void DBOS_Test_Test_Pnt(void const *A, void const *E, INT32S const Line);
+void DBOS_Test_LogEvent(char E);
+void DBOS_Test_CheckEventLog(char const * const pCheck);
+void DBOS_Test_PrintResults(void);
+void DBOS_Test_PrintPassResultsEnableDisable(INT8U const PrintPassed);
+void DBOS_Test_StartTests(fptrTest const * const pTests, INT32U const NumberOfTests);
+void DBOS_Test_RunNextTest(void);
+void DBOS_Test_Start(char const * const TestString);
+
+// -------------------------------------------------------------------------------------------------
+// CLASSES
+
+}// namespace
+
+#endif /* TESTSYS_H_ */

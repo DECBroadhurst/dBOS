@@ -1,0 +1,457 @@
+/**
+ * @file TestSys.cpp
+ * @author David Broadhurst
+ * @date 28/06/2015
+ *
+ * \brief Implementation of unit test system for dBOS.
+ *
+ */
+
+// -------------------------------------------------------------------------------------------------
+// INCLUDE FILES
+#include "TestSys.hpp"
+#include "MemoryBarrier.h"
+#include "ProjUARTs.h"
+#include "dBOS_Port.hpp"
+#include "dBOS_DebugPrint.hpp"
+
+extern void * _estack;
+
+extern void HeapReset(void);
+
+namespace dBOS {
+// -------------------------------------------------------------------------------------------------
+// LOCAL DEFINES
+#define EARRAYSIZE 52U
+
+// -------------------------------------------------------------------------------------------------
+// LOCAL CONSTANTS
+
+// -------------------------------------------------------------------------------------------------
+// LOCAL DATA TYPES
+
+// -------------------------------------------------------------------------------------------------
+// LOCAL TABLES
+
+// -------------------------------------------------------------------------------------------------
+// LOCAL VARIABLES
+static INT8U PrintPassResults = 0U;
+
+static INT32U RunTests = 0U;
+static INT32U PassedTests = 0U;
+static INT32U FailedTests = 0U;
+
+static INT32U TotalChecks = 0U;
+static INT32U ChecksPassed = 0U;
+static INT32U ChecksFailed = 0U;
+
+static INT32U EArrayIndex = 0U;
+
+static char EArray[EARRAYSIZE + 1U] = { 0 }; // +1 to ensure null terminator
+
+static fptrTest const * S_pTests = NULLPTR;
+
+static INT32U S_NumberOfTests = 0U;
+
+static INT8U CurrentTest = 0U;
+
+// -------------------------------------------------------------------------------------------------
+// LOCAL VARIABLES SHARED WITH INTERRUPT SERVICE ROUTINES
+
+// -------------------------------------------------------------------------------------------------
+// LOCAL FUNCTION PROTOTYPES
+
+// -------------------------------------------------------------------------------------------------
+// PUBLIC FUNCTIONS
+void DBOS_Test_Test_Result(DBOS_RESULT_t const A, DBOS_RESULT_t const E, INT32U const Line){
+
+	INTERRUPT_MASK_t PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+	TotalChecks++;
+
+	DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+	if((A) == (E)){
+
+		PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+		ChecksPassed++;
+
+		DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+		if(PrintPassResults == 1U){
+			DBOS_printf("\nPASSED Test Line: %u, Result: ", Line);
+			DBOS_Print_ReturnValue(A);
+		}
+	}
+	else{
+
+		PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+		ChecksFailed++;
+
+		DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+		DBOS_printf("\nFAILED Test Line: %u, Actual: ", Line);
+		DBOS_Print_ReturnValue(A);
+		DBOS_printf(" Expected: ");
+		DBOS_Print_ReturnValue(E);
+	}
+
+}
+
+void DBOS_Test_Test_Priority(DBOS_TASK_PRIORITY_t const A, DBOS_TASK_PRIORITY_t const E, INT32U const Line){
+
+	INTERRUPT_MASK_t PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+	TotalChecks++;
+
+	DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+	if((A) == (E)){
+
+		PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+		ChecksPassed++;
+
+		DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+		if(PrintPassResults == 1U){
+			DBOS_printf("\nPASSED Test Priority Line: %u, Result: %u", Line, A);
+		}
+	}
+	else{
+
+		PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+		ChecksFailed++;
+
+		DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+		DBOS_printf("\nFAILED Test Priority Line: %u, Actual: %u, Expected: %u", Line, A, E);
+	}
+
+}
+
+void DBOS_Test_Test_SignalData(SIGNALLED_DATA_t const A, SIGNALLED_DATA_t const E, INT32U const Line){
+
+	INTERRUPT_MASK_t PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+	TotalChecks++;
+
+	DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+	if((A) == (E)){
+
+		PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+		ChecksPassed++;
+
+		DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+		if(PrintPassResults == 1U){
+			DBOS_printf("\nPASSED Test Signal Data Line: %u, Result: %u", Line, A);
+		}
+	}
+	else{
+
+		PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+		ChecksFailed++;
+
+		DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+		DBOS_printf("\nFAILED Test Signal Data Line: %u, Actual: %u, Expected: %u", Line, A, E);
+	}
+
+}
+
+void DBOS_Test_Test_INT32U(INT32U const A, INT32U const E, INT32U const Line){
+
+	INTERRUPT_MASK_t PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+	TotalChecks++;
+
+	DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+	if((A) == (E)){
+
+		PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+		ChecksPassed++;
+
+		DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+		if(PrintPassResults == 1U){
+			DBOS_printf("\nPASSED Test INT32U Line: %u, Result: %u", Line, A);
+		}
+	}
+	else{
+
+		PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+		ChecksFailed++;
+
+		DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+		DBOS_printf("\nFAILED Test INT32U Line: %u, Actual: %u, Expected: %u", Line, A, E);
+	}
+
+}
+
+void DBOS_Test_Test_INT32S(INT32S const A, INT32S const E, INT32S const Line){
+
+	INTERRUPT_MASK_t PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+	TotalChecks++;
+
+	DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+	if((A) == (E)){
+
+		PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+		ChecksPassed++;
+
+		DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+		if(PrintPassResults == 1U){
+			DBOS_printf("\nPASSED Test INT32S Line: %u, Result: %i", Line, A);
+		}
+	}
+	else{
+
+		PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+		ChecksFailed++;
+
+		DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+		DBOS_printf("\nFAILED Test INT32S Line: %u, Actual: %i, Expected: %i", Line, A, E);
+	}
+
+}
+
+void DBOS_Test_Test_Pnt(void const *A, void const *E, INT32S const Line){
+
+	INTERRUPT_MASK_t PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+	TotalChecks++;
+
+	DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+	if((A) == (E)){
+
+		PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+		ChecksPassed++;
+
+		DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+		if(PrintPassResults == 1U){
+			DBOS_printf("\nPASSED Test Pointer Line: %u, Result: %X", Line, (INT32U) A);
+		}
+	}
+	else{
+
+		PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+		ChecksFailed++;
+
+		DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+		DBOS_printf("\nFAILED Test Pointer Line: %u, Actual: %X, Expected: %X", Line, (INT32U) A, (INT32U) E);
+	}
+}
+
+void DBOS_Test_LogEvent(char E){
+
+	INT8U ArrayFull;
+
+	INTERRUPT_MASK_t PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+	if(EArrayIndex < EARRAYSIZE){
+		EArray[EArrayIndex] = E;
+		EArrayIndex++;
+		ArrayFull = 0U;
+	}
+	else{
+		ArrayFull = 1U;
+	}
+
+	DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+	if(ArrayFull == 1U){
+		DBOS_printf("\nEVENT LOG ARRAY FULL");
+	}
+
+}
+
+void DBOS_Test_CheckEventLog(char const * const pCheck){
+
+	INT32U index = 0U;
+	INT32U Result = 1U;
+	INT8U Passed;
+
+	INTERRUPT_MASK_t PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+	TotalChecks++;
+
+	while((index < EARRAYSIZE) && (pCheck[index] != 0) && (EArray[index] != 0)){
+
+		if(pCheck[index] != EArray[index]){
+			Result = 0U;
+		}
+
+		index++;
+	}
+
+	if((index < EARRAYSIZE) && (Result == 1U)){
+		if(pCheck[index] != EArray[index]){
+			Result = 0U;
+		}
+	}
+
+	if(Result == 0U){
+		ChecksFailed++;
+		Passed = 0U;
+	}
+	else{
+		ChecksPassed++;
+		Passed = 1U;
+	}
+
+	DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+	if(Passed == 1U){
+		if(PrintPassResults == 1U){
+			DBOS_printf("\nPASSED Test Event Log Result: %s", pCheck);
+		}
+	}
+	else{
+		DBOS_printf("\nFAILED Test Event Log Actual: %s, Expected: %s", EArray, pCheck);
+	}
+
+}
+
+void DBOS_Test_PrintResults(void){
+
+	INT32U LTotalChecks = 0U;
+	INT32U LChecksPassed = 0U;
+	INT32U LChecksFailed = 0U;
+
+	INTERRUPT_MASK_t PrevCS = DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+	RunTests++;
+
+	if(ChecksFailed == 0U){
+		PassedTests++;
+	}
+	else{
+		FailedTests++;
+	}
+
+	LTotalChecks = TotalChecks;
+	LChecksPassed = ChecksPassed;
+	LChecksFailed = ChecksFailed;
+
+	DBOS_Port_ExitCritical(PrevCS);	// Exit OS Critical Section
+
+	DBOS_printf("\n---------------------------------------------------------------------------------------");
+	DBOS_printf("\nTEST RESULTS: TOTAL CHECKS: %u FAILED: %u PASSED: %u", LTotalChecks, LChecksFailed, LChecksPassed);
+
+	DBOS_Test_RunNextTest();
+
+	return;
+}
+
+void DBOS_Test_PrintPassResultsEnableDisable(INT8U const PrintPassed){
+
+	PrintPassResults = PrintPassed;
+}
+
+void DBOS_Test_StartTests(fptrTest const * const pTests, INT32U const NumberOfTests){
+
+	CurrentTest = 0U;
+
+	S_NumberOfTests = NumberOfTests;
+
+	S_pTests = pTests;
+
+	S_pTests[CurrentTest]();
+}
+
+void DBOS_Test_RunNextTest(void){
+
+	DBOS_Port_EnterCritical(); // Enter OS Critical Section
+
+	fptrTest NextTest;
+
+	// Wait for all characters to be sent out of debug port.
+	while(ProjUARTs_DebugTxBytes() != 0){
+
+	}
+
+	CurrentTest++;
+
+	if(CurrentTest == S_NumberOfTests){
+		DBOS_printf("\n\n---------------------------------------------------------------------------------------");
+		DBOS_printf("\nALL TESTS FINISHED: TOTAL: %u FAILED: %u PASSED: %u", RunTests, FailedTests, PassedTests);
+
+		while(1){
+
+		}
+	}
+	else{
+
+		DBOS_Port_IncreaseInterruptMaskingLevel(ISRMASK_ALL);
+
+		TotalChecks = 0U;
+		ChecksPassed = 0U;
+		ChecksFailed = 0U;
+
+		EArrayIndex = 0U;
+
+		for(INT8U index = 0U ; index < EARRAYSIZE ; index++){
+			EArray[index] = 0U;
+		}
+
+		HeapReset();
+
+		NextTest = S_pTests[CurrentTest];
+
+		MEMORY_BARRIER
+
+		PORT_ASM_VOLATILE
+		(
+
+				"	MSR PSP, %[e_stack]					\n" // Set PSP back to top of stack space, everything already stacked won't be used again.
+
+				" 	MSR MSP, %[e_stack]					\n"// Set MSP back to top of stack space, everything already stacked won't be used again.
+
+				"	MOV r12, #0x00000000				\n"// Switch to using MSP stack pointer.
+				" 	MSR CONTROL, r12					\n"
+				" 	ISB									\n"// This ensures that instructions after the ISB instruction execute using the new stack pointer
+				" 	BX %[Test]"
+
+				:// Outputs
+				: [e_stack] "r" (&_estack), [Test] "r" (NextTest)// Inputs
+				: "r12", "cc"// Clobber List
+		)
+		;
+
+	}
+}
+
+void DBOS_Test_Start(char const * const TestString){
+
+	DBOS_printf("\n\nRunning Test: %s Number: %u", TestString, CurrentTest);
+}
+
+// -------------------------------------------------------------------------------------------------
+// PRIVATE FUNCTIONS
+
+// -------------------------------------------------------------------------------------------------
+// INTERRUPT SERVICE ROUTINES
+
+}// namespace
